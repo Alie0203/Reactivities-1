@@ -31,6 +31,13 @@ namespace API
             {
                 opt.UseSqlite(Configuration.GetConnectionString("DefaultConnection"));
             });
+            services.AddCors(opt => {
+                opt.AddPolicy("CorsPolicy", policy => {
+                    policy.AllowAnyHeader().AllowAnyMethod().WithOrigins("http://localhost:3000");
+                    // Any request from http://localhost:3000 can use any method from 
+                    // the API, otherwise request sent to the API will not get a response 
+                });
+            });
             services.AddControllers();
             
         }
@@ -44,6 +51,9 @@ namespace API
             }
 
             // app.UseHttpsRedirection();
+            app.UseCors("CorsPolicy");
+            //now the app will used the cors policy defined in the 
+            //configureservices above 
 
             app.UseRouting();
 
