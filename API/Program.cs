@@ -26,7 +26,9 @@ namespace API
                     var context = services.GetRequiredService<DataContext>();
                     context.Database.Migrate();
                     //if database exists, entities will be added
-                    //if database doesn't exist, a new database will be creted
+                    //if database doesn't exist, a new database will be created
+
+                    Seed.SeedData(context);
                 }
                 catch (Exception ex)
                 {
