@@ -101,7 +101,8 @@ namespace Persistence
                         Category = "film",
                         City = "London",
                         Venue = "Cinema",
-                    }
+                    },
+
                 };
 
                 context.Activities.AddRange(activities);
