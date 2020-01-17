@@ -1,14 +1,15 @@
-import React from "react";
+import React, { useContext } from "react";
 import { Card, Image, Button } from "semantic-ui-react";
-import { IActivity } from "../../../app/models/activity";
+import ActivityStore from "../../../app/stores/activityStore";
+import { observer } from "mobx-react-lite";
 
-interface IProps {
-  activity: IActivity;
-  setEditMode: (editMode: boolean) => void;
-  setSelectedActivity: (activity: IActivity | null) => void;
-}
-
-const ActivityDetails: React.FC<IProps> = ({ activity, setEditMode, setSelectedActivity }) => {
+const ActivityDetails: React.FC = () => {
+  const activityStore = useContext(ActivityStore);
+  const {
+    selectedActivity: activity,
+    openEditForm,
+    cancelSelectedActivity
+  } = activityStore;
   //fluid in the card tag makes the card to expand and fill
   //all the space of the column
   //Button group enables to have multiple buttons evenly spaced
@@ -17,27 +18,27 @@ const ActivityDetails: React.FC<IProps> = ({ activity, setEditMode, setSelectedA
   return (
     <Card fluid>
       <Image
-        src={`/assets/categoryImages/${activity.category}.jpg`}
+        src={`/assets/categoryImages/${activity!.category}.jpg`}
         wrapped
         ui={false}
       />
       <Card.Content>
-        <Card.Header>{activity.title}</Card.Header>
+        <Card.Header>{activity!.title}</Card.Header>
         <Card.Meta>
-          <span>{activity.date}</span>
+          <span>{activity!.date}</span>
         </Card.Meta>
-        <Card.Description>{activity.description}</Card.Description>
+        <Card.Description>{activity!.description}</Card.Description>
       </Card.Content>
       <Card.Content extra>
         <Button.Group widths={2}>
           <Button
-            onClick={() => setEditMode(true)}
+            onClick={() => openEditForm(activity!.id)}
             basic
             color="blue"
             content="Edit"
           />
           <Button
-            onClick={() => setSelectedActivity(null)}
+            onClick={() => cancelSelectedActivity()}
             basic
             color="grey"
             content="Cancel"
@@ -48,4 +49,7 @@ const ActivityDetails: React.FC<IProps> = ({ activity, setEditMode, setSelectedA
   );
 };
 
-export default ActivityDetails;
+export default observer(ActivityDetails);
+
+//Activity! " ! " is added to remove an error message showing the element might be undefined
+//as it can be null
