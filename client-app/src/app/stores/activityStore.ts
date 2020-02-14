@@ -9,10 +9,8 @@ configure({ enforceActions: "always" });
 
 class ActivityStore {
   @observable activityRegistry = new Map();
-  @observable activities: IActivity[] = [];
-  @observable selectedActivity: IActivity | undefined; //when not found it will be undefined
+  @observable activity: IActivity | null = null; //when not found it will be null
   @observable loadingInitial = false;
-  @observable editMode = false;
   @observable submitting = false;
   @observable target = "";
 
@@ -42,6 +40,35 @@ class ActivityStore {
     }
   };
 
+  @action loadActivity = async (id: string) => {
+    let activity = this.getActivity(id);
+    if (activity) {
+      this.activity = activity; //If the details is from a list of activities
+    } else {
+      this.loadingInitial = true;
+      try {
+        activity = agent.Activities.details(id); // when the details are from a link with an id / or when the page refreshed
+        runInAction("getting activity", () => {
+          this.activity = activity;
+          this.loadingInitial = false;
+        });
+      } catch (error) {
+        runInAction("error getting activity", () => {
+          this.loadingInitial = false;
+        });
+        console.log(error);
+      }
+    }
+  };
+
+  @action clearActivity = () => {
+    this.activity = null;
+  }
+
+  getActivity = (id: string) => {
+    return this.activityRegistry.get(id);
+  };
+
   @action createActivity = async (activity: IActivity) => {
     this.submitting = true;
     try {
@@ -49,7 +76,6 @@ class ActivityStore {
       //this.activities.push(activity); before using Map() ... activityRegistry
       runInAction("creating activity", () => {
         this.activityRegistry.set(activity.id, activity);
-        this.editMode = false;
         this.submitting = false;
       });
     } catch (error) {
@@ -66,8 +92,7 @@ class ActivityStore {
       await agent.Activities.update(activity);
       runInAction("Edit activity", () => {
         this.activityRegistry.set(activity.id, activity);
-        this.selectedActivity = activity;
-        this.editMode = false;
+        this.activity = activity;
         this.submitting = false;
       });
     } catch (error) {
@@ -99,29 +124,6 @@ class ActivityStore {
       console.log(error);
     }
   };
-
-  @action openCreateForm = () => {
-    this.editMode = true;
-    this.selectedActivity = undefined;
-  };
-
-  @action openEditForm = (id: string) => {
-    this.selectedActivity = this.activityRegistry.get(id);
-    this.editMode = true;
-  };
-
-  @action cancelSelectedActivity = () => {
-    this.selectedActivity = undefined;
-  };
-
-  @action cancelFormOpen = () => {
-    this.editMode = false;
-  };
-
-  @action selectActivity = (id: string) => {
-    this.selectedActivity = this.activityRegistry.get(id);
-    this.editMode = false;
-  };
 }
 
 export default createContext(new ActivityStore());
@@ -129,3 +131,11 @@ export default createContext(new ActivityStore());
 //let activities[] and the loop after that is used to change the dates and
 //display only date and time. Date time formate is too long and the [0] returns
 //the first part of the array after the date is splitting at the dot.
+
+// decorate (ActivityStore, {
+//   activityRegistry: observable,  ..... do this for  all the observables
+//   loadActivities: action,   ... for all actiond
+
+//   BY DOING THIS IT CAN BE AVOIDED USING @OBSERVABLES AND @ACTION IN TRHE class
+//   decorate has to be imported from mobx
+// });

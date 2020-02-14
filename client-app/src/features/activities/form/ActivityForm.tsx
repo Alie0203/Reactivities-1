@@ -1,47 +1,63 @@
-import React, { useState, FormEvent, useContext } from "react";
-import { Segment, Form, Button } from "semantic-ui-react";
+import React, { useState, FormEvent, useContext, useEffect } from "react";
+import { Segment, Form, Button } from 'semantic-ui-react';
 import { IActivity } from "../../../app/models/activity";
 import { v4 as uuid } from "uuid";
 import ActivityStore from "../../../app/stores/activityStore";
 import { observer } from "mobx-react-lite";
+import { RouteComponentProps } from "react-router-dom";
 
-interface IProps {
-  activity: IActivity;
+interface DetailParams {
+  id: string;
 }
 
-const ActivityForm: React.FC<IProps> = ({
-  activity: initializeFormState
+const ActivityForm: React.FC<RouteComponentProps<DetailParams>> = ({
+  match,
+  history
 }) => {
   const activityStore = useContext(ActivityStore);
-  const { createActivity, editActivity, submitting, cancelFormOpen } = activityStore;
-  const initializeForm = () => {
-    if (initializeFormState) {
-      return initializeFormState;
-    } else {
-      return {
-        id: "",
-        title: "",
-        description: "",
-        category: "",
-        date: "",
-        city: "",
-        venue: ""
-      };
-    }
-  };
+  const {
+    createActivity,
+    editActivity,
+    submitting,
+    activity: initialFormState,
+    loadActivity,
+    clearActivity
+  } = activityStore;
+
+  // if .. && activity.id.length === 0 .. is not added it will give an error/stuck when the submit button is clicked
+  // after editting  an activity by clicking the edit button from the activity details page
+
   //The form fields will have the values of an activity if an activity is selected
   //to be editted. Other wise all the fields are empty strings to enable entry of new activity
 
-  const [activity, setActivity] = useState<IActivity>(initializeForm);
+  const [activity, setActivity] = useState<IActivity>({
+    id: "",
+    title: "",
+    description: "",
+    category: "",
+    date: "",
+    city: "",
+    venue: ""
+  });
+
+  useEffect(() => {
+    if (match.params.id && activity.id.length === 0) {
+      loadActivity(match.params.id).then(
+        () => initialFormState && setActivity(initialFormState)
+      );
+    }
+    return () => {
+      clearActivity();
+    };
+  }, [
+    loadActivity,
+    match.params.id,
+    clearActivity,
+    initialFormState,
+    activity.id.length
+  ]);
 
   //event- specified the event type is a change event from an HTML input
-
-  const handleInputChange = (
-    event: FormEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = event.currentTarget;
-    setActivity({ ...activity, [name]: value });
-  };
 
   const handleSubmit = () => {
     //if Id is empty string new activity is being created
@@ -51,11 +67,25 @@ const ActivityForm: React.FC<IProps> = ({
         ...activity,
         id: uuid()
       };
-      createActivity(newActivity);
+      createActivity(newActivity).then(() =>
+        history.push(`/activities/${newActivity.id}`)
+      );
     } else {
-      editActivity(activity);
+      editActivity(activity).then(() =>
+        history.push(`/activities/${activity.id}`)
+      );
     }
   };
+
+  const handleInputChange = (
+    event: FormEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = event.currentTarget;
+    setActivity({ ...activity, [name]: value });
+  };
+
+  //history.push(...) navigates the user vto the given path after
+  //creating the activity.
 
   return (
     <Segment clearing>
@@ -106,7 +136,7 @@ const ActivityForm: React.FC<IProps> = ({
           content="submit"
         />
         <Button
-          onClick={() => cancelFormOpen()}
+          onClick={() => history.push('/activities')}
           floated="right"
           type="button"
           content="Cancel"
